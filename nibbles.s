@@ -10,7 +10,9 @@
 ###
 ### Constants
 ###
-.set	MAX_ITER,	5
+.set	WALL_COUNT,	50
+.set	ROOF_COUNT, 50
+.set	BORDER_CHAR, 43
 	
 ###
 ### Global variables
@@ -36,17 +38,45 @@ result:	.word	0
 .type start_game,@function
 start_game:
 	call	nib_init
-	movl	4(%esp), %ecx	# no of iterations
-	cmpl	$MAX_ITER, %ecx	# just a check...
-	jle	ok
-	ret
-ok:	
-	xorl	%eax, %eax	# set the result register to zero
-oloop:	movl	4(%esp), %ebx	# start outer loop, init the no iter in iloop
-iloop:	incl	%eax		# start inner loop, increment the result
-	decl	%ebx
-	jnz	iloop		# end of inner loop
-	loop	oloop		# end of outer loop
-	movl	%eax, result	# store the result
+	#Spawn worm in the middle
+game_loop:
+	call	draw_map
+	jmp 	game_loop
+	#check apple collision
+	#-set flag
+	#check wall collision
+	#-end game
+	#poll keyboard input
+	#move worm
+	#Go to game_loop
+
 	call	nib_end
 	ret
+
+draw_map:
+	call 	draw_walls
+	call 	draw_roof
+ret
+
+draw_walls:
+	xorl	%ecx, %ecx
+	xorl	%ebx, %ebx
+
+	l1: 
+	pushl	%ecx
+	pushl	%ebx
+	pushl	BORDER_CHAR
+	call	nib_put_scr
+	addl	$12, %esp
+	cmpl	WALL_COUNT, %ebx
+	incl	%ebx
+	jnz		l1
+	addl	ROOF_COUNT, %ecx
+	cmpl	%ecx, ROOF_COUNT
+	jnz		l1
+ret
+
+draw_roof:
+	l2:
+
+ret
