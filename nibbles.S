@@ -1,13 +1,3 @@
-/*********************************************************************
- *
- * Copyright (C) 2010,  Blekinge Institute of Technology
- *
- * Filename:      loops.s
- * Author:        Håkan Grahn <hgr@bth.se>
- * Description:   Example with nested loops, assembly
- *
- ********************************************************************/
-###
 ### Constants
 ###
 .set	MAX_Y,	25
@@ -21,19 +11,17 @@
 .set	KU, 259
 .set	KL, 260
 .set	KR, 261
-	
-###
-### Global variables
-###
-.bss
-.align 4
-result:	.word	0
+.set 	EMPTY_CHAR, 32
 
 .data
-snake:	.space 	300 #Something wrong with this.
-snake_size:	.word	1
-tail: 	.word 	0
-head:	.word 	0
+snake:	
+		.space 	300 #Something wrong with this.
+tail: 	
+		.long 	0
+snake_size:	
+		.long	1
+head:	
+		.long 	0
 ###
 ### Code
 ###
@@ -45,24 +33,45 @@ head:	.word 	0
 .type start_game,@function
 start_game:
 	call	nib_init
-	movl	$0, (head)
+	movl	$4, (head)
 	movl	$0, (tail)
-	movl	$1, snake_size
+	movl	$5, (snake_size)
 	leal	snake, %edx
 	xorl 	%ebx, %ebx
-	movl	$MID_X, %eax
+	movl	$12, %eax
 	movl	%eax, (%edx, %ebx, 8)
-	movl	$MID_X, %eax
+	movl	$24, %eax
 	movl	%eax, 4(%edx, %ebx, 8)
-	movl	$-1, 8(%edx, %ebx, 8)
-	addl	$4, %ebx
-	movl	$-1, 12(%edx, %ebx, 8)
-
+	incl	%ebx
+	movl	$13, %eax
+	movl	%eax, (%edx, %ebx, 8)
+	movl	$24, %eax
+	movl	%eax, 4(%edx, %ebx, 8)
+	incl	%ebx
+	movl	$14, %eax
+	movl	%eax, (%edx, %ebx, 8)
+	movl	$24, %eax
+	movl	%eax, 4(%edx, %ebx, 8)
+	incl	%ebx
+	movl	$15, %eax
+	movl	%eax, (%edx, %ebx, 8)
+	movl	$24, %eax
+	movl	%eax, 4(%edx, %ebx, 8)
+		incl	%ebx
+	movl	$16, %eax
+	movl	%eax, (%edx, %ebx, 8)
+	movl	$24, %eax
+	movl	%eax, 4(%edx, %ebx, 8)
 	#Spawn worm in the middle
 game_loop:
+	
 	call	move_snake
-	call	draw_snake
 	call	draw_map
+	call	draw_snake
+	pushl	$1
+	call	sleep
+	addl	$4, %esp
+	call	clear_board
 	jmp 	game_loop
 	#check apple collision
 	#-set flag
@@ -73,6 +82,20 @@ game_loop:
 	#Go to game_loop
 
 	call	nib_end
+	ret
+
+clear_board:
+	xorl %eax, %eax # set the result register to zero
+	oloop: movl 4(%esp), %ebx # start outer loop, init the no iter in iloop
+	iloop: incl %eax # start inner loop, increment the result
+	pushl 	$EMPTY_CHAR
+	pushl 	%eax
+	pushl 	%ebx
+	call	nib_put_scr
+	addl	$12, %esp
+	decl %ebx
+	jnz iloop # end of inner loop
+	loop oloop # end of outer loop
 	ret
 
 draw_map:
@@ -88,7 +111,7 @@ draw_walls:
 	pushl	$BORDER_CHAR # Push character
 	pushl	%ebx		 # Push y
 	pushl	$0		 # Push x
-	call	nib_put_scr
+	#call	nib_put_scr
 	addl	$12, %esp
 	pushl	$BORDER_CHAR # Push character
 	pushl	%ebx		 # Push y
@@ -108,7 +131,7 @@ draw_roof:
 	pushl	$BORDER_CHAR # Push character
 	pushl	$0		 # Push y
 	pushl	%ebx		 # Push x
-	call	nib_put_scr
+	#call	nib_put_scr
 	addl	$12, %esp
 	pushl	$BORDER_CHAR # Push character
 	pushl	$MAX_Y		 # Push y
@@ -122,32 +145,31 @@ draw_roof:
 	ret
 
 draw_snake:
-	xorl	%edx, %edx	
-	xorl	%ebx, %ebx #counter
-
+	movl	tail, %eax
 	l3:
+	movl	$50, %ecx
+	call	mod
+	movl	%eax, %ebx
 	leal	(snake), %edx
-	#Get x- and y-values
-	movl	(%edx, %ebx, 8), %eax
-	cmpl	$0, %eax
-	je 		next_node
 
-	movl	4(%edx, %ebx, 8), %ecx
+	movl	(%edx, %ebx, 8), %eax	#x-value of snake
+	cmpl	$0, %eax
+	je 		draw_snake_end #Found empty spot in array -> end draw
+
+	movl	4(%edx, %ebx, 8), %ecx #y-value of snake
 
 	pushl	$SNAKE_CHAR
 	pushl 	%eax
 	pushl 	%ecx
 
-	call	nib_put_scr
+	#call	nib_put_scr
 	addl	$12, %esp
 
 	#inc counter
-	next_node:
-	addl	$8, %ebx
-
-	cmpl	$588, %ebx
-	jle		l3
-
+	incl	%ebx
+	movl	%ebx, %eax
+	jmp		l3
+	draw_snake_end:
 	ret
 
 move_snake:
@@ -161,8 +183,6 @@ move_snake:
 	movl	4(%edx, %eax, 8), %ecx #store y-value of current head in %eax
 	pushl	%ecx
 
-	#Create new node in snake (Replace with function to find the next available space in the array)
-	#Store off-set of new node in %ecx
 
 	incl	%eax
 	movl	$50, %ecx
@@ -171,17 +191,20 @@ move_snake:
 	#index = eax
 	popl	%ecx
 	#Now we can manipulate %ecx to move in y-axis
-	incl	%ecx
+	
+	leal	(snake), %edx
 	movl	%ecx, 4(%edx, %eax, 8)
 	popl	%ecx
 	#Now we can manipulate %ecx to move in x-axis
+	incl	%ecx
 	movl	%ecx, (%edx, %eax, 8)
 
 
 	########REMOVE TAIL############
 	movl	tail, %eax
+	leal	(snake), %edx
 	movl	$0, (%edx, %eax, 8)
-	movl	$0, (%edx, %eax, 8)
+	movl	$0, 4(%edx, %eax, 8)
 
 	incl	%eax
 	movl	$50, %ecx
@@ -196,6 +219,5 @@ mod:
 	divl	%ecx	# random/(max-1) (%eax/%ecx)
 	# %eax = kvot
 	# %edx = rest
-	addl	$1, %edx	# %edx + 1
 	movl	%edx, %eax	# return val
 	ret
