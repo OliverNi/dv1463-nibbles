@@ -18,6 +18,7 @@ snake:		.space 	512 #Something wrong with this.
 tail: 		.long 	0
 snake_size:	.long	0
 head:		.long	0
+direction:	.long	258
 ###
 ### Code
 ###
@@ -62,15 +63,9 @@ start_game:
 	movl	$24, %eax
 	movl	%eax, 4(%edx, %ebx, 8)
 	#Spawn worm in the middle
-	
-game_loop:
-	pushl	$1
-	call	sleep
-	addl	$4, %esp
 	call	draw_map #K, A, B
-	pushl	$1
-	call	sleep
-	addl	$4, %esp
+game_loop:
+	call 	check_input
 	call	move_snake #D
 	#call	draw_snake #C
 	pushl	$1
@@ -88,7 +83,13 @@ game_loop:
 	call	nib_end
 	leave
 	ret
-
+check_input:
+	call 	nib_poll_kbd
+	cmpl	$-1, %eax
+	je 		do_nothing
+	movl 	%eax, direction
+do_nothing:
+ret
 draw_map:
 		#debug
 		pushl	%ebx
@@ -204,27 +205,44 @@ move_snake:
 	#######Move forward - add head#########
 	#Get values from current head
 	movl	head, %eax
-	movl	(%edx, %eax, 8), %ecx #store x-value of current head in %ecx
+	movl	(%edx, %eax, 8), %ecx #store x-value of current head
 	pushl	%ecx
-	movl	4(%edx, %eax, 8), %ecx #store y-value of current head in %eax
+	movl	4(%edx, %eax, 8), %ecx #store y-value of current head 
 	pushl	%ecx
 
-
+	#Calculate index of the new head
 	incl	%eax
 	movl	$50, %ecx
 	call	mod
 	movl	%eax, head
-	#index = eax
-	popl	%ecx
-	#Now we can manipulate %ecx to move in y-axis
-	incl	%ecx
+	
 	leal	(snake), %edx
-	movl	%ecx, 4(%edx, %eax, 8)
-	popl	%ecx
-	#Now we can manipulate %ecx to move in x-axis
-	#incl	%ecx
+	
+	popl	%ebx	#pop y-coord of the old head
+	popl 	%ecx	#x-coord
+	cmpl	$KU, direction	#if keyboard input was UP
+	jnz		move_down
+move_up:
+	decl	%ecx
+	jmp		set_xy
+move_down:
+	cmpl	$KD, direction	#if keyboard input was DOWN
+	jnz		xcoord
+	incl	%ecx
+	jmp		set_xy
+xcoord:
+	cmpl	$KR, direction	#if keyboard input was RIGHT
+	jnz		move_left
+move_right:
+	incl	%ebx
+	jmp		set_xy
+move_left:
+	decl	%ebx
+set_xy:
 	movl	%ecx, (%edx, %eax, 8)
+	movl	%ebx, 4(%edx, %eax, 8)
 
+draw_head:
 	#Draw head
 	pushl 	$SNAKE_CHAR
 	pushl 	(%edx, %eax, 8)
@@ -257,7 +275,7 @@ move_snake:
 	movl	$50, %ecx
 	call	mod
 	movl	%eax, tail
-	end move:
+	end_move:
 	ret
 mod:
 	xorl	%edx, %edx # edx = 0 (reserve 32 bit for rest)
