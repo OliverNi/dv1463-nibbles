@@ -53,6 +53,10 @@ game_loop:
 	call	sleep
 	addl	$4, %esp
 	jmp 	game_loop
+losers_lounge:
+	pushl	$2
+	call	sleep
+	addl	$4, %esp
 	call	nib_end
 	leave
 	ret
@@ -229,6 +233,15 @@ set_new_head:
 	popl 	%ebx
 	movl	%ecx, (%edx, %eax, 8)
 	movl	%ebx, 4(%edx, %eax, 8)
+check_wall_coll:
+	cmpl 	$0, %ecx
+	je 		losers_lounge
+	cmpl	$MAX_X, %ecx
+	je 		losers_lounge
+	cmpl	$0, %ebx
+	je 		losers_lounge
+	cmpl	$MAX_Y, %ebx
+	je 		losers_lounge
 
 draw_head:
 	#Draw head
