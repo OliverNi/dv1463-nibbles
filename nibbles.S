@@ -250,6 +250,7 @@ move_right:
 move_left:
 	decl	%ebx
 set_xy:
+
 	movl	%ecx, (%edx, %eax, 8)
 	movl	%ebx, 4(%edx, %eax, 8)
 
@@ -261,7 +262,22 @@ draw_head:
 	call	nib_put_scr
 	addl	$12, %esp
 
+
 	#IF APPLE EATEN -> DON'T REMOVE TAIL
+	#Check collision with apple
+	movl	head, %eax
+	leal	(snake), %edx
+	leal	apple, %ebx
+	movl 	(%ebx), %ecx
+	cmpl 	%ecx, (%edx, %eax, 8)
+	jnz 	remove_tail
+	movl 	4(%ebx), %ecx
+	cmpl 	%ecx, 4(%edx, %eax, 8)
+	jnz 	remove_tail
+	call 	spawn_apple
+	jmp 	end_move
+
+remove_tail:
 	########REMOVE TAIL############
 	movl	tail, %eax
 	leal	(snake), %edx
@@ -288,6 +304,9 @@ draw_head:
 	movl	%eax, tail
 	end_move:
 	ret
+#int mod(int i, int mod_val) params stored int %eax and %ecx
+# returns i mod mod_val
+# result is returned in %eax
 mod:
 	xorl	%edx, %edx # edx = 0 (reserve 32 bit for rest)
 	divl	%ecx	# random/(max-1) (%eax/%ecx)
