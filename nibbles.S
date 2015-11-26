@@ -72,7 +72,7 @@ game_loop:
 	call	sleep
 	addl	$4, %esp
 	call	move_snake #D
-	call	draw_snake #C
+	#call	draw_snake #C
 	pushl	$1
 	call	sleep
 	addl	$4, %esp
@@ -101,23 +101,6 @@ clear_board: #This function did not work but we do not need it anyway (I'll keep
 		popl 	%ecx
 		popl	%ebx
 		####
-#	movl	$25, %eax
-#	movl	$50, %ebx
-##
-#	oloop:
-#	iloop:
-#	pushl 	$EMPTY_CHAR
-#	pushl 	%eax
-#	pushl 	%ebx
-#	call	nib_put_scr
-#	addl	$12, %esp
-#	decl	%ebx
-#	jge		iloop
-#	movl	$50, %ebx
-#	decl	%eax
-#	jge		oloop
-#	ret
-
 	xorl	%edx, %edx
 	oloop:
 		#debug
@@ -300,6 +283,7 @@ move_snake:
 	
 
 	#######Move forward - add head#########
+	#Get values from current head
 	movl	head, %eax
 	movl	(%edx, %eax, 8), %ecx #store x-value of current head in %ecx
 	pushl	%ecx
@@ -322,11 +306,19 @@ move_snake:
 	#incl	%ecx
 	movl	%ecx, (%edx, %eax, 8)
 
+	#Draw head
+	pushl 	$SNAKE_CHAR
+	pushl 	(%edx, %eax, 8)
+	pushl 	4(%edx, %eax, 8)
+	call	nib_put_scr
+	addl	$12, %esp
 
+	#IF APPLE EATEN -> DON'T REMOVE TAIL
 	########REMOVE TAIL############
 	movl	tail, %eax
 	leal	(snake), %edx
 
+	#Remove graphic
 	pushl 	$EMPTY_CHAR
 	pushl 	(%edx, %eax, 8)
 	pushl 	4(%edx, %eax, 8)
@@ -337,13 +329,16 @@ move_snake:
 	movl	tail, %eax	
 	leal	(snake), %edx
 
+	#Reset values in array
 	movl	$0, (%edx, %eax, 8)
 	movl	$0, 4(%edx, %eax, 8)
 
+	#Calculate new tail (offset in array)
 	incl	%eax
 	movl	$50, %ecx
 	call	mod
 	movl	%eax, tail
+	end move:
 	ret
 mod:
 	xorl	%edx, %edx # edx = 0 (reserve 32 bit for rest)
