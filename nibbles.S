@@ -57,21 +57,29 @@ start_game:
 	movl	%eax, (%edx, %ebx, 8)
 	movl	$24, %eax
 	movl	%eax, 4(%edx, %ebx, 8)
-		incl	%ebx
+	incl	%ebx
 	movl	$16, %eax
 	movl	%eax, (%edx, %ebx, 8)
 	movl	$24, %eax
 	movl	%eax, 4(%edx, %ebx, 8)
 	#Spawn worm in the middle
-game_loop:
-	
-	call	move_snake
 	call	draw_map
+game_loop:
+	#call	nib_init
+	call	move_snake
+	pushl	$1
+	call	sleep
+	addl	$4, %esp
+	
+	pushl	$1
+	call	sleep
+	addl	$4, %esp
 	call	draw_snake
 	pushl	$1
 	call	sleep
 	addl	$4, %esp
-	call	clear_board
+	call 	clear_board
+	
 	jmp 	game_loop
 	#check apple collision
 	#-set flag
@@ -85,18 +93,47 @@ game_loop:
 	ret
 
 clear_board:
-	xorl %eax, %eax # set the result register to zero
-	oloop: movl 4(%esp), %ebx # start outer loop, init the no iter in iloop
-	iloop: incl %eax # start inner loop, increment the result
-	pushl 	$EMPTY_CHAR
-	pushl 	%eax
-	pushl 	%ebx
-	call	nib_put_scr
-	addl	$12, %esp
-	decl %ebx
-	jnz iloop # end of inner loop
-	loop oloop # end of outer loop
-	ret
+
+#	movl	$25, %eax
+#	movl	$50, %ebx
+##
+#	oloop:
+#	iloop:
+#	pushl 	$EMPTY_CHAR
+#	pushl 	%eax
+#	pushl 	%ebx
+#	call	nib_put_scr
+#	addl	$12, %esp
+#	decl	%ebx
+#	jge		iloop
+#	movl	$50, %ebx
+#	decl	%eax
+#	jge		oloop
+#	ret
+
+	xorl	%ebx, %ebx
+	xorl	%ecx, %ecx
+
+	oloop:
+		cmpl	$MAX_X, %ebx
+		je 		done
+		incl	%ebx
+	iloop:
+		cmpl	$MAX_Y, %ecx
+		je 		reset_iloop
+		incl	%ecx
+
+		pushl 	$EMPTY_CHAR
+		pushl 	%ebx
+		pushl 	%ecx
+		call	nib_put_scr
+		addl	$12, %esp
+
+		jmp		iloop
+	reset_iloop:
+		xorl	%ecx, %ecx
+		jmp 	oloop
+	done:
 
 draw_map:
 	call 	draw_walls
@@ -111,7 +148,7 @@ draw_walls:
 	pushl	$BORDER_CHAR # Push character
 	pushl	%ebx		 # Push y
 	pushl	$0		 # Push x
-	#call	nib_put_scr
+	call	nib_put_scr
 	addl	$12, %esp
 	pushl	$BORDER_CHAR # Push character
 	pushl	%ebx		 # Push y
@@ -131,7 +168,7 @@ draw_roof:
 	pushl	$BORDER_CHAR # Push character
 	pushl	$0		 # Push y
 	pushl	%ebx		 # Push x
-	#call	nib_put_scr
+	call	nib_put_scr
 	addl	$12, %esp
 	pushl	$BORDER_CHAR # Push character
 	pushl	$MAX_Y		 # Push y
@@ -162,7 +199,7 @@ draw_snake:
 	pushl 	%eax
 	pushl 	%ecx
 
-	#call	nib_put_scr
+	call	nib_put_scr
 	addl	$12, %esp
 
 	#inc counter
@@ -178,7 +215,7 @@ move_snake:
 
 	#######Move forward - add head#########
 	movl	head, %eax
-	movl	(%edx, %eax, 8), %ecx #store x-value of current head in %eax
+	movl	(%edx, %eax, 8), %ecx #store x-value of current head in %ecx
 	pushl	%ecx
 	movl	4(%edx, %eax, 8), %ecx #store y-value of current head in %eax
 	pushl	%ecx
