@@ -14,11 +14,12 @@
 .set 	EMPTY_CHAR, 32
 
 .section .data
-snake:		.space 	512 #Something wrong with this.
+apple: 		.space 	8
+snake:		.space 	300 #error when end of the array is reached
 tail: 		.long 	0
 snake_size:	.long	0
 head:		.long	0
-direction:	.long	258
+direction:	.long	258 #DOWN default value
 ###
 ### Code
 ###
@@ -64,6 +65,7 @@ start_game:
 	movl	%eax, 4(%edx, %ebx, 8)
 	#Spawn worm in the middle
 	call	draw_map #K, A, B
+	call 	spawn_apple
 game_loop:
 	call 	check_input
 	call	move_snake #D
@@ -72,14 +74,6 @@ game_loop:
 	call	sleep
 	addl	$4, %esp
 	jmp 	game_loop
-	#check apple collision
-	#-set flag
-	#check wall collision
-	#-end game
-	#poll keyboard input
-	#move worm
-	#Go to game_loop
-
 	call	nib_end
 	leave
 	ret
@@ -90,6 +84,23 @@ check_input:
 	movl 	%eax, direction
 do_nothing:
 ret
+spawn_apple:
+	leal 	apple, %ebx
+	pushl 	$APPLE_CHAR
+	pushl	$MAX_Y
+	call 	rpoint
+	addl	$4, %esp
+	movl 	%eax, (%ebx) #set x-coord
+	pushl 	%eax
+	pushl 	$MAX_X
+	call 	rpoint
+	addl	$4, %esp
+	movl 	%eax, 4(%ebx) #set y-coord
+	pushl	%eax
+	call	nib_put_scr
+	addl	$12, %esp
+ret
+
 draw_map:
 		#debug
 		pushl	%ebx
@@ -284,3 +295,19 @@ mod:
 	# %edx = rest
 	movl	%edx, %eax	# return val
 	ret
+
+# int rpoint(int max) { return rand() % (max - 1) + 1; }
+# returns random value between 1 and max - 1
+# result is returned in %eax
+rpoint:
+	call	rand			# eax = random value
+	movl    4(%esp), %edx		# edx = max
+	leal	-1(%edx), %ecx		# ecx = max - 1
+	xorl	%edx, %edx 		# edx = 0 (reserve 32 bit for rest)
+	divl	%ecx			# random/(max-1) (%eax/%ecx)
+					# %eax = kvot
+					# %edx = rest
+	addl	$1, %edx		# %edx + 1
+	movl	%edx, %eax		# return val
+	ret
+
