@@ -1,10 +1,10 @@
 ### Constants
 ###
-.set	MAX_Y,	25
-.set	MAX_X, 50
+.set	MAX_Y,	7
+.set	MAX_X, 7
 .set	BORDER_CHAR, 43
-.set	MID_X, 12
-.set	MID_Y, 24
+.set	MID_X, 3
+.set	MID_Y, 3
 .set	SNAKE_CHAR, 111
 .set	APPLE_CHAR, 64
 .set	KD, 258
@@ -12,7 +12,7 @@
 .set	KL, 260
 .set	KR, 261
 .set 	EMPTY_CHAR, 32
-.set 	MAX_ARR, 6
+.set 	MAX_ARR, 4
 
 .section .data
 apple: 		.space 	8
@@ -35,21 +35,20 @@ start_game:
 	movl	%esp, %ebp
 	subl	$1024, %esp
 	call	nib_init
-	movb	$0, head
-	movb	$0, tail
-	movb	$1, snake_size
+	movl	$0, head
+	movl	$0, tail
+	movl	$1, snake_size
 	leal	snake, %edx
 	xorl 	%ebx, %ebx
 	#Spawn worm in the middle
 	movl	$MID_X, (%edx, %ebx, 8)
 	movl	$MID_Y, 4(%edx, %ebx, 8)
 	
-	call	draw_map #K, A, B
+	call	draw_map
 	call 	spawn_apple
 game_loop:
 	call 	check_input
-	call	move_snake #D
-	#call	draw_snake #C
+	call	move_snake
 	pushl	$1
 	call	sleep
 	addl	$4, %esp
@@ -65,7 +64,6 @@ check_input:
 do_nothing:
 ret
 spawn_apple:
-	pushl 	%ebx
 	leal 	apple, %ebx
 	pushl 	$APPLE_CHAR
 	pushl	$MAX_Y
@@ -80,7 +78,6 @@ spawn_apple:
 	pushl	%eax
 	call	nib_put_scr
 	addl	$12, %esp
-	popl	%ebx
 ret
 
 draw_map:
@@ -132,7 +129,7 @@ draw_roof:
 	ret
 
 move_snake:
-	leal	(snake), %edx
+	leal	snake, %edx
 	
 
 	#######Move forward - add head#########
@@ -143,13 +140,9 @@ move_snake:
 	movl	4(%edx, %eax, 8), %ecx #store y-value of current head 
 	pushl	%ecx
 
-	#Calculate index of the new head
-	incl	%eax
-	movl	$MAX_ARR, %ecx
-	call	mod
-	movl	%eax, head
+
 	
-	leal	(snake), %edx
+	leal	snake, %edx
 	
 	popl	%ebx	#pop y-coord of the old head
 	popl 	%ecx	#x-coord
@@ -157,53 +150,42 @@ move_snake:
 	jnz		move_down
 move_up:
 	decl	%ecx
-	jmp		set_xy
+	jmp		end_move
 move_down:
 	cmpl	$KD, direction	#if keyboard input was DOWN
 	jnz		xcoord
 	incl	%ecx
-	jmp		set_xy
+	jmp		end_move
 xcoord:
 	cmpl	$KR, direction	#if keyboard input was RIGHT
 	jnz		move_left
 move_right:
 	incl	%ebx
-	jmp		set_xy
+	jmp		end_move
 move_left:
 	decl	%ebx
-set_xy:
+end_move:
+	pushl 	%ebx
+	pushl 	%ecx
 
-	movl	%ecx, (%edx, %eax, 8)
-	movl	%ebx, 4(%edx, %eax, 8)
-
-draw_head:
-	#Draw head
-	pushl 	$SNAKE_CHAR
-	pushl 	(%edx, %eax, 8)
-	pushl 	4(%edx, %eax, 8)
-	call	nib_put_scr
-	addl	$12, %esp
-
-
+check_apple_coll:
 	#IF APPLE EATEN -> DON'T REMOVE TAIL
 	#Check collision with apple
 	movl	head, %eax
-	leal	(snake), %edx
-	leal	apple, %ebx
-	movl 	(%ebx), %ecx
-	cmpl 	%ecx, (%edx, %eax, 8)
+	leal	snake, %edx
+	leal	apple, %eax
+	cmpl 	%ecx, (%eax)
 	jnz 	remove_tail
-	movl 	4(%ebx), %ecx
-	cmpl 	%ecx, 4(%edx, %eax, 8)
+	cmpl 	%ebx, 4(%eax)
 	jnz 	remove_tail
 	call 	spawn_apple
-	movl 	$snake_size, %ebx
+	movl 	snake_size, %ebx
+	cmpl	$MAX_ARR, %ebx
+	je		remove_tail 	#don't grow if max size is reached
+	movl 	snake_size, %ebx
 	incl	%ebx
 	movl 	%ebx, snake_size
-	cmpl	$MAX_ARR, %ebx
-	jl 		remove_tail 	#don't grow if max size is reached
-	jmp 	end_move
-
+	jmp 	set_new_head
 remove_tail:
 	########REMOVE TAIL############
 	movl	tail, %eax
@@ -229,7 +211,32 @@ remove_tail:
 	movl	$MAX_ARR, %ecx
 	call	mod
 	movl	%eax, tail
-	end_move:
+
+set_new_head:
+	
+	#Calculate index of the new head
+	movl 	head, %eax
+	incl	%eax
+	cmpl 	$tail, %eax
+	je 		remove_tail
+
+	movl	$MAX_ARR, %ecx
+	call	mod
+	movl	%eax, head
+	leal	(snake), %edx
+	#pop coords
+	popl 	%ecx
+	popl 	%ebx
+	movl	%ecx, (%edx, %eax, 8)
+	movl	%ebx, 4(%edx, %eax, 8)
+
+draw_head:
+	#Draw head
+	pushl 	$SNAKE_CHAR
+	pushl 	(%edx, %eax, 8)
+	pushl 	4(%edx, %eax, 8)
+	call	nib_put_scr
+	addl	$12, %esp
 	ret
 #int mod(int i, int mod_val) params stored int %eax and %ecx
 # returns i mod mod_val
