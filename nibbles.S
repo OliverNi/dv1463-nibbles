@@ -13,15 +13,11 @@
 .set	KR, 261
 .set 	EMPTY_CHAR, 32
 
-.data
-snake:	
-		.space 	300 #Something wrong with this.
-tail: 	
-		.long 	0
-snake_size:	
-		.long	1
-head:	
-		.long 	0
+.section .data
+snake:		.space 	512 #Something wrong with this.
+tail: 		.long 	0
+snake_size:	.long	0
+head:		.long	0
 ###
 ### Code
 ###
@@ -32,10 +28,13 @@ head:
 .globl	start_game
 .type start_game,@function
 start_game:
+	pushl	%ebp
+	movl	%esp, %ebp
+	subl	$1024, %esp
 	call	nib_init
-	movl	$4, (head)
-	movl	$0, (tail)
-	movl	$5, (snake_size)
+	movb	$4, head
+	movb	$0, tail
+	movb	$5, snake_size
 	leal	snake, %edx
 	xorl 	%ebx, %ebx
 	movl	$12, %eax
@@ -63,23 +62,20 @@ start_game:
 	movl	$24, %eax
 	movl	%eax, 4(%edx, %ebx, 8)
 	#Spawn worm in the middle
-	call	draw_map
+	
 game_loop:
-	#call	nib_init
-	call	move_snake
 	pushl	$1
 	call	sleep
 	addl	$4, %esp
-	
+	call	draw_map #K, A, B
 	pushl	$1
 	call	sleep
 	addl	$4, %esp
-	call	draw_snake
+	call	move_snake #D
+	call	draw_snake #C
 	pushl	$1
 	call	sleep
 	addl	$4, %esp
-	call 	clear_board
-	
 	jmp 	game_loop
 	#check apple collision
 	#-set flag
@@ -90,10 +86,21 @@ game_loop:
 	#Go to game_loop
 
 	call	nib_end
+	leave
 	ret
 
-clear_board:
-
+clear_board: #This function did not work but we do not need it anyway (I'll keep it in the code for now.)
+		#debug
+		pushl	%ebx
+		pushl	%ecx
+		pushl	$70 # Push character F
+		pushl	$30		 # Push y
+		pushl	$30		 # Push x
+		call	nib_put_scr
+		addl	$12, %esp
+		popl 	%ecx
+		popl	%ebx
+		####
 #	movl	$25, %eax
 #	movl	$50, %ebx
 ##
@@ -111,36 +118,101 @@ clear_board:
 #	jge		oloop
 #	ret
 
-	xorl	%ebx, %ebx
-	xorl	%ecx, %ecx
-
+	xorl	%edx, %edx
 	oloop:
-		cmpl	$MAX_X, %ebx
-		je 		done
-		incl	%ebx
+		#debug
+	#	pushl	%edx
+	#	pushl	%ebx
+	#	pushl	$71 # Push character G
+	#	pushl	$30		 # Push y
+	#	pushl	$30		 # Push x
+	#	call	nib_put_scr
+	#	addl	$12, %esp
+	#	popl 	%ebx
+	#	popl	%edx
+		####
+		cmpl	$50, %edx
+		jge 		done
+		xorl	%ebx, %ebx
 	iloop:
-		cmpl	$MAX_Y, %ecx
-		je 		reset_iloop
-		incl	%ecx
+		#debug
+	#	pushl	%edx
+	#	pushl	%ebx
+	#	pushl	$74 # Push character J
+	#	pushl	$30		 # Push y
+	#	pushl	$30		 # Push x
+	#	call	nib_put_scr
+	#	addl	$12, %esp
+	#	popl 	%ebx
+	#	popl	%edx
+		####
 
 		pushl 	$EMPTY_CHAR
+		pushl 	%edx
 		pushl 	%ebx
-		pushl 	%ecx
 		call	nib_put_scr
-		addl	$12, %esp
+		popl	%ebx
+		popl	%edx
+		addl	$4, %esp
+		#debug
+	#	pushl	%edx
+	#	pushl	%ebx
+	#	pushl	$72 # Push character H
+	#	pushl	$30		 # Push y
+	#	pushl	$30		 # Push x
+	#	call	nib_put_scr
+	#	addl	$12, %esp
+	#	popl 	%ebx
+	#	popl	%edx
+		####
 
+		cmpl	$25, %ebx
+		jge 		reset_iloop
+		incl	%ebx
 		jmp		iloop
 	reset_iloop:
-		xorl	%ecx, %ecx
+		#debug
+	#	pushl	%edx
+	#	pushl	%ebx
+	#	pushl	$73 # Push character I
+	#	pushl	$30		 # Push y
+	#	pushl	$30		 # Push x
+	#	call	nib_put_scr
+	#	addl	$12, %esp
+	#	popl 	%ebx
+	#	popl	%edx
+		####
+		incl	%edx
 		jmp 	oloop
 	done:
+	ret
 
 draw_map:
+		#debug
+		pushl	%ebx
+		pushl	%ecx
+		pushl	$75 # Push character K
+		pushl	$30		 # Push y
+		pushl	$30		 # Push x
+		call	nib_put_scr
+		addl	$12, %esp
+		popl 	%ecx
+		popl	%ebx
+		####
 	call 	draw_walls
+	pushl	$1
+	call	sleep
+	addl	$4, %esp
 	call 	draw_roof
 ret
 
 draw_walls:
+	pushl	$65 # Push character A
+	pushl	$30		 # Push y
+	pushl	$30		 # Push x
+	call	nib_put_scr
+	addl	$12, %esp
+
 	xorl	%edx, %edx	
 	xorl	%ebx, %ebx #counter
 
@@ -161,6 +233,11 @@ draw_walls:
 	ret
 
 draw_roof:
+	pushl	$66 # Push character B
+	pushl	$30		 # Push y
+	pushl	$30		 # Push x
+	call	nib_put_scr
+	addl	$12, %esp
 	xorl	%edx, %edx	
 	xorl	%ebx, %ebx #counter
 
@@ -178,10 +255,14 @@ draw_roof:
 	incl	%ebx
 	cmpl	$MAX_X, %ebx
 	jle		l2
-
 	ret
 
 draw_snake:
+	pushl	$67 # Push character C
+	pushl	$30		 # Push y
+	pushl	$30		 # Push x
+	call	nib_put_scr
+	addl	$12, %esp
 	movl	tail, %eax
 	l3:
 	movl	$50, %ecx
@@ -210,6 +291,11 @@ draw_snake:
 	ret
 
 move_snake:
+	pushl	$68 # Push character D
+	pushl	$30		 # Push y
+	pushl	$30		 # Push x
+	call	nib_put_scr
+	addl	$12, %esp
 	leal	(snake), %edx
 	
 
@@ -228,18 +314,29 @@ move_snake:
 	#index = eax
 	popl	%ecx
 	#Now we can manipulate %ecx to move in y-axis
-	
+	incl	%ecx
 	leal	(snake), %edx
 	movl	%ecx, 4(%edx, %eax, 8)
 	popl	%ecx
 	#Now we can manipulate %ecx to move in x-axis
-	incl	%ecx
+	#incl	%ecx
 	movl	%ecx, (%edx, %eax, 8)
 
 
 	########REMOVE TAIL############
 	movl	tail, %eax
 	leal	(snake), %edx
+
+	pushl 	$EMPTY_CHAR
+	pushl 	(%edx, %eax, 8)
+	pushl 	4(%edx, %eax, 8)
+	call	nib_put_scr
+	addl	$12, %esp
+
+	#Would be better if we could grab this from the stack but nothing's working.
+	movl	tail, %eax	
+	leal	(snake), %edx
+
 	movl	$0, (%edx, %eax, 8)
 	movl	$0, 4(%edx, %eax, 8)
 
@@ -247,10 +344,7 @@ move_snake:
 	movl	$50, %ecx
 	call	mod
 	movl	%eax, tail
-
 	ret
-
-
 mod:
 	xorl	%edx, %edx # edx = 0 (reserve 32 bit for rest)
 	divl	%ecx	# random/(max-1) (%eax/%ecx)
