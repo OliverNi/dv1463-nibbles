@@ -12,10 +12,11 @@
 .set	KL, 260
 .set	KR, 261
 .set 	EMPTY_CHAR, 32
+.set 	MAX_ARR, 6
 
 .section .data
 apple: 		.space 	8
-snake:		.space 	300 #error when end of the array is reached
+snake:		.space 	64 #error when end of the array is reached
 tail: 		.long 	0
 snake_size:	.long	0
 head:		.long	0
@@ -34,36 +35,15 @@ start_game:
 	movl	%esp, %ebp
 	subl	$1024, %esp
 	call	nib_init
-	movb	$4, head
+	movb	$0, head
 	movb	$0, tail
-	movb	$5, snake_size
+	movb	$1, snake_size
 	leal	snake, %edx
 	xorl 	%ebx, %ebx
-	movl	$12, %eax
-	movl	%eax, (%edx, %ebx, 8)
-	movl	$24, %eax
-	movl	%eax, 4(%edx, %ebx, 8)
-	incl	%ebx
-	movl	$13, %eax
-	movl	%eax, (%edx, %ebx, 8)
-	movl	$24, %eax
-	movl	%eax, 4(%edx, %ebx, 8)
-	incl	%ebx
-	movl	$14, %eax
-	movl	%eax, (%edx, %ebx, 8)
-	movl	$24, %eax
-	movl	%eax, 4(%edx, %ebx, 8)
-	incl	%ebx
-	movl	$15, %eax
-	movl	%eax, (%edx, %ebx, 8)
-	movl	$24, %eax
-	movl	%eax, 4(%edx, %ebx, 8)
-	incl	%ebx
-	movl	$16, %eax
-	movl	%eax, (%edx, %ebx, 8)
-	movl	$24, %eax
-	movl	%eax, 4(%edx, %ebx, 8)
 	#Spawn worm in the middle
+	movl	$MID_X, (%edx, %ebx, 8)
+	movl	$MID_Y, 4(%edx, %ebx, 8)
+	
 	call	draw_map #K, A, B
 	call 	spawn_apple
 game_loop:
@@ -85,6 +65,7 @@ check_input:
 do_nothing:
 ret
 spawn_apple:
+	pushl 	%ebx
 	leal 	apple, %ebx
 	pushl 	$APPLE_CHAR
 	pushl	$MAX_Y
@@ -99,20 +80,10 @@ spawn_apple:
 	pushl	%eax
 	call	nib_put_scr
 	addl	$12, %esp
+	popl	%ebx
 ret
 
 draw_map:
-		#debug
-		pushl	%ebx
-		pushl	%ecx
-		pushl	$75 # Push character K
-		pushl	$30		 # Push y
-		pushl	$30		 # Push x
-		call	nib_put_scr
-		addl	$12, %esp
-		popl 	%ecx
-		popl	%ebx
-		####
 	call 	draw_walls
 	pushl	$1
 	call	sleep
@@ -121,12 +92,6 @@ draw_map:
 ret
 
 draw_walls:
-	pushl	$65 # Push character A
-	pushl	$30		 # Push y
-	pushl	$30		 # Push x
-	call	nib_put_scr
-	addl	$12, %esp
-
 	xorl	%edx, %edx	
 	xorl	%ebx, %ebx #counter
 
@@ -147,11 +112,6 @@ draw_walls:
 	ret
 
 draw_roof:
-	pushl	$66 # Push character B
-	pushl	$30		 # Push y
-	pushl	$30		 # Push x
-	call	nib_put_scr
-	addl	$12, %esp
 	xorl	%edx, %edx	
 	xorl	%ebx, %ebx #counter
 
@@ -171,45 +131,7 @@ draw_roof:
 	jle		l2
 	ret
 
-draw_snake:
-	pushl	$67 # Push character C
-	pushl	$30		 # Push y
-	pushl	$30		 # Push x
-	call	nib_put_scr
-	addl	$12, %esp
-	movl	tail, %eax
-	l3:
-	movl	$50, %ecx
-	call	mod
-	movl	%eax, %ebx
-	leal	(snake), %edx
-
-	movl	(%edx, %ebx, 8), %eax	#x-value of snake
-	cmpl	$0, %eax
-	je 		draw_snake_end #Found empty spot in array -> end draw
-
-	movl	4(%edx, %ebx, 8), %ecx #y-value of snake
-
-	pushl	$SNAKE_CHAR
-	pushl 	%eax
-	pushl 	%ecx
-
-	call	nib_put_scr
-	addl	$12, %esp
-
-	#inc counter
-	incl	%ebx
-	movl	%ebx, %eax
-	jmp		l3
-	draw_snake_end:
-	ret
-
 move_snake:
-	pushl	$68 # Push character D
-	pushl	$30		 # Push y
-	pushl	$30		 # Push x
-	call	nib_put_scr
-	addl	$12, %esp
 	leal	(snake), %edx
 	
 
@@ -223,7 +145,7 @@ move_snake:
 
 	#Calculate index of the new head
 	incl	%eax
-	movl	$50, %ecx
+	movl	$MAX_ARR, %ecx
 	call	mod
 	movl	%eax, head
 	
@@ -275,6 +197,11 @@ draw_head:
 	cmpl 	%ecx, 4(%edx, %eax, 8)
 	jnz 	remove_tail
 	call 	spawn_apple
+	movl 	$snake_size, %ebx
+	incl	%ebx
+	movl 	%ebx, snake_size
+	cmpl	$MAX_ARR, %ebx
+	jl 		remove_tail 	#don't grow if max size is reached
 	jmp 	end_move
 
 remove_tail:
@@ -299,7 +226,7 @@ remove_tail:
 
 	#Calculate new tail (offset in array)
 	incl	%eax
-	movl	$50, %ecx
+	movl	$MAX_ARR, %ecx
 	call	mod
 	movl	%eax, tail
 	end_move:
