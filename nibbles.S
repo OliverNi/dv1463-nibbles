@@ -143,10 +143,6 @@ move_snake:
 	pushl	%ecx
 	movl	4(%edx, %eax, 8), %ecx #store y-value of current head 
 	pushl	%ecx
-
-
-	
-	leal	snake, %edx
 	
 	popl	%ebx	#pop y-coord of the old head
 	popl 	%ecx	#x-coord
