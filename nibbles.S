@@ -1,10 +1,10 @@
 ### Constants
 ###
-.set	MAX_Y,	7
-.set	MAX_X, 7
+.set	MAX_Y,	14
+.set	MAX_X, 14
 .set	BORDER_CHAR, 43
-.set	MID_X, 3
-.set	MID_Y, 3
+.set	MID_X, 7
+.set	MID_Y, 7
 .set	SNAKE_CHAR, 111
 .set	APPLE_CHAR, 64
 .set	KD, 258
@@ -12,11 +12,11 @@
 .set	KL, 260
 .set	KR, 261
 .set 	EMPTY_CHAR, 32
-.set 	MAX_ARR, 4
+.set 	MAX_ARR, 50
 
 .section .data
 apple: 		.space 	8
-snake:		.space 	64 #error when end of the array is reached
+snake:		.space 	400 #error when end of the array is reached
 tail: 		.long 	0
 snake_size:	.long	0
 head:		.long	0
@@ -221,8 +221,6 @@ set_new_head:
 	#Calculate index of the new head
 	movl 	head, %eax
 	incl	%eax
-	cmpl 	$tail, %eax
-	je 		remove_tail
 
 	movl	$MAX_ARR, %ecx
 	call	mod
