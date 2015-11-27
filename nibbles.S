@@ -70,19 +70,14 @@ do_nothing:
 ret
 spawn_apple:
 	leal 	apple, %ebx
-	pushl 	$APPLE_CHAR
 	pushl	$MAX_Y
 	call 	rpoint
 	addl	$4, %esp
 	movl 	%eax, (%ebx) #set x-coord
-	pushl 	%eax
 	pushl 	$MAX_X
 	call 	rpoint
 	addl	$4, %esp
 	movl 	%eax, 4(%ebx) #set y-coord
-	pushl	%eax
-	#call	nib_put_scr
-	addl	$12, %esp
 ret
 
 draw_apple:
