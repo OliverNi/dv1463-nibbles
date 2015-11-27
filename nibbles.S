@@ -43,12 +43,13 @@ start_game:
 	#Spawn worm in the middle
 	movl	$MID_X, (%edx, %ebx, 8)
 	movl	$MID_Y, 4(%edx, %ebx, 8)
-	
-	call	draw_map
 	call 	spawn_apple
+	call	draw_map
+	
 game_loop:
 	call 	check_input
 	call	move_snake
+	call 	draw_apple
 	pushl	$1
 	call	sleep
 	addl	$4, %esp
@@ -80,9 +81,19 @@ spawn_apple:
 	addl	$4, %esp
 	movl 	%eax, 4(%ebx) #set y-coord
 	pushl	%eax
-	call	nib_put_scr
+	#call	nib_put_scr
 	addl	$12, %esp
 ret
+
+draw_apple:
+	leal 	apple, %edx
+	pushl 	$APPLE_CHAR
+	pushl 	(%edx)
+	pushl 	4(%edx)
+	call 	nib_put_scr
+	addl 	$12, %esp
+
+	ret
 
 draw_map:
 	call 	draw_walls
