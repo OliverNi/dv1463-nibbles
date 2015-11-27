@@ -21,8 +21,9 @@ tail: 			.long 	0
 snake_size:		.long	0
 head:			.long	0
 direction:		.long	258 #DOWN default value
-apples_eaten: 	.long 0
-max_apples: 	.long 1
+apples_eaten: 	.long 	0
+max_apples: 	.long 	1
+start_len: 		.long 	1
 ###
 ### Code
 ###
@@ -33,20 +34,45 @@ max_apples: 	.long 1
 .type start_game,@function
 start_game:
 	movl 	4(%esp), %eax
+	movl 	%eax, start_len
 	movl 	8(%esp), %ecx
 	movl 	%ecx, max_apples
 	pushl	%ebp
 	movl	%esp, %ebp
 	subl	$1024, %esp
 	call	nib_init
-	movl	$0, head
+	movl	$-1, head
 	movl	$0, tail
 	movl	$1, snake_size
-	leal	snake, %edx
+	
+#Spawn worm in the middle (one head at a time)
+init_worm:
+	#Calculate position for first head
+	xorl 	%edx, %edx
+	movl 	$2, %ebx
+	movl  	start_len, %eax
+	divl 	%ebx
+	movl 	$MID_X, %ecx	
+	subl 	%eax, %ecx
 	xorl 	%ebx, %ebx
-	#Spawn worm in the middle
-	movl	$MID_X, (%edx, %ebx, 8)
-	movl	$MID_Y, 4(%edx, %ebx, 8)
+	pushl 	%ecx
+#add the next head
+worm_loop:
+	movl 	head, %ecx
+	incl	%ecx	#let head point to the next offset in the array
+	movl 	%ecx, head
+	leal 	snake, %edx
+	movl 	$MID_X, %eax
+	movl	%eax, 4(%edx, %ebx, 8)
+	popl 	%ecx
+	movl	%ecx, (%edx, %ebx, 8)
+	incl	%ecx	#increase position coord
+	pushl 	%ecx
+	call 	draw_head
+	incl 	%ebx
+	cmpl 	start_len, %ebx 	#start_len, loop counter
+	jne 	worm_loop
+
 	call 	spawn_apple
 	call	draw_map
 	
@@ -259,6 +285,8 @@ check_wall_coll:
 
 draw_head:
 	#Draw head
+	movl 	head, %eax
+	leal	snake, %edx
 	pushl 	$SNAKE_CHAR
 	pushl 	(%edx, %eax, 8)
 	pushl 	4(%edx, %eax, 8)
