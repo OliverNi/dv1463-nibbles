@@ -22,16 +22,19 @@ snake_size:		.long	0
 head:			.long	0
 direction:		.long	258 #DOWN default value
 apples_eaten: 	.long 0
+max_apples: 	.long 1
 ###
 ### Code
 ###
 .text
 
 	
-### void start_game(int no_iter)
 .globl	start_game
 .type start_game,@function
 start_game:
+	movl 	4(%esp), %eax
+	movl 	8(%esp), %ecx
+	movl 	%ecx, max_apples
 	pushl	%ebp
 	movl	%esp, %ebp
 	subl	$1024, %esp
@@ -56,6 +59,7 @@ game_loop:
 	addl	$4, %esp
 	jmp 	game_loop
 losers_lounge:
+winners_lounge:
 	pushl	$2
 	call	sleep
 	addl	$4, %esp
@@ -70,6 +74,14 @@ check_input:
 do_nothing:
 ret
 spawn_apple:
+	movl 	apples_eaten, %eax
+
+	cmpl 	max_apples, %eax
+	je		winners_lounge
+
+	incl 	%eax
+	movl 	%eax, apples_eaten
+
 	leal 	apple, %ebx
 	pushl	$MAX_Y
 	call 	rpoint
@@ -79,6 +91,7 @@ spawn_apple:
 	call 	rpoint
 	addl	$4, %esp
 	movl 	%eax, 4(%ebx) #set y-coord
+
 ret
 
 draw_apple:
