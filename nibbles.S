@@ -15,12 +15,13 @@
 .set 	MAX_ARR, 50
 
 .section .data
-apple: 		.space 	8
-snake:		.space 	400 #error when end of the array is reached
-tail: 		.long 	0
-snake_size:	.long	0
-head:		.long	0
-direction:	.long	258 #DOWN default value
+apple: 			.space 	8
+snake:			.space 	400 #error when end of the array is reached
+tail: 			.long 	0
+snake_size:		.long	0
+head:			.long	0
+direction:		.long	258 #DOWN default value
+apples_eaten: 	.long 0
 ###
 ### Code
 ###
@@ -50,8 +51,8 @@ game_loop:
 	call 	check_input
 	call	move_snake
 	call 	draw_apple
-	pushl	$1
-	call	sleep
+	pushl	$500000
+	call	usleep
 	addl	$4, %esp
 	jmp 	game_loop
 losers_lounge:
