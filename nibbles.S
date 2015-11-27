@@ -44,6 +44,7 @@ start_game:
 	movl	$-1, head
 	movl	$0, tail
 	movl	$1, snake_size
+	call	draw_map
 	
 #Spawn worm in the middle (one head at a time)
 init_worm:
@@ -74,7 +75,6 @@ worm_loop:
 	jne 	worm_loop
 
 	call 	spawn_apple
-	call	draw_map
 	
 game_loop:
 	call 	check_input
@@ -282,7 +282,26 @@ check_wall_coll:
 	je 		losers_lounge
 	cmpl	$MAX_Y, %ebx
 	je 		losers_lounge
-
+check_worm_coll:
+	movl 	tail, %eax
+	pushl 	%ebx
+	movl 	head, %ebx
+	cmpl 	%ebx, %eax
+	popl	%ebx
+	je 		draw_head
+worm_coll_loop:
+	#edx = snake
+	cmpl 	(%edx, %eax, 8), %ecx
+	jne 	no_coll_worm
+	cmpl 	4(%edx, %eax, 8), %ebx
+	je 		losers_lounge
+no_coll_worm:
+	incl 	%eax 
+	pushl 	%ebx
+	movl 	head, %ebx
+	cmpl 	%ebx, %eax
+	popl 	%ebx
+	jne 	worm_coll_loop
 draw_head:
 	#Draw head
 	movl 	head, %eax
