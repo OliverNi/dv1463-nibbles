@@ -12,16 +12,15 @@
 .set	KL, 260
 .set	KR, 261
 .set 	EMPTY_CHAR, 32
-.set 	MAX_ARR, 50
+.set 	MAX_ARR,	50
 
 .section .data
-apple: 			.space 	8
-snake:			.space 	400 #error when end of the array is reached
+apple: 			.space 	200
+snake:			.space 	400
 tail: 			.long 	0
 snake_size:		.long	0
-head:			.long	0
+head:			.long	-1
 direction:		.long	258 #DOWN default value
-apples_eaten: 	.long 	0
 max_apples: 	.long 	1
 start_len: 		.long 	1
 ###
@@ -36,14 +35,12 @@ start_game:
 	movl 	4(%esp), %eax
 	movl 	%eax, start_len
 	movl 	8(%esp), %ecx
+	decl	%ecx		#-1 so it works better in loops (offset starts at 0)
 	movl 	%ecx, max_apples
 	pushl	%ebp
 	movl	%esp, %ebp
 	subl	$1024, %esp
 	call	nib_init
-	movl	$-1, head
-	movl	$0, tail
-	movl	$1, snake_size
 	call	draw_map
 	
 #Spawn worm in the middle (one head at a time)
@@ -71,15 +68,31 @@ worm_loop:
 	pushl 	%ecx
 	call 	draw_head
 	incl 	%ebx
+
+	#increase size
+	movl 	snake_size, %ecx
+	incl	%ecx
+	movl 	%ecx, snake_size
+
 	cmpl 	start_len, %ebx 	#start_len, loop counter
 	jne 	worm_loop
 
+init_apples:
+	movl 	max_apples, %ebx
+	#decl	%ebx
+init_apples_loop:
+	pushl 	%ebx
 	call 	spawn_apple
+	addl	$4, %esp
+
+	decl	%ebx
+	jge		init_apples_loop	
+
 	
 game_loop:
 	call 	check_input
 	call	move_snake
-	call 	draw_apple
+	call 	draw_apples
 	pushl	$500000
 	call	usleep
 	addl	$4, %esp
@@ -96,38 +109,69 @@ check_input:
 	call 	nib_poll_kbd
 	cmpl	$-1, %eax
 	je 		do_nothing
+	movl 	direction, %ecx
+x_axis_l:
+	cmpl 	$KL, %ecx
+	jne 	x_axis_r
+	cmpl 	$KR, %eax
+	je 		do_nothing
+x_axis_r:
+	cmpl	$KR, %ecx
+	jne 	y_axis_u
+	cmpl	$KL, %eax
+	je 		do_nothing
+y_axis_u:
+	cmpl 	$KU, %ecx
+	jne 	y_axis_d
+	cmpl	$KD, %eax
+	je 		do_nothing
+y_axis_d:
+	cmpl 	$KD, %ecx
+	jne 	change_direction
+	cmpl	$KU, %eax
+	je 		do_nothing
+change_direction:
 	movl 	%eax, direction
 do_nothing:
 ret
+# void spawn_apple(int offset)
+# offset: The offset in the array where the appleshould be stored
 spawn_apple:
-	movl 	apples_eaten, %eax
-
-	cmpl 	max_apples, %eax
-	je		winners_lounge
-
-	incl 	%eax
-	movl 	%eax, apples_eaten
-
-	leal 	apple, %ebx
+	pushl 	%ebx
+	movl 	8(%esp), %ebx
+	
 	pushl	$MAX_Y
 	call 	rpoint
 	addl	$4, %esp
-	movl 	%eax, (%ebx) #set x-coord
+	leal 	apple, %edx
+	movl 	%eax, (%edx, %ebx, 8) #set x-coord
+
 	pushl 	$MAX_X
 	call 	rpoint
 	addl	$4, %esp
-	movl 	%eax, 4(%ebx) #set y-coord
-
-ret
-
-draw_apple:
 	leal 	apple, %edx
+	movl 	%eax, 4(%edx, %ebx, 8) #set y-coord
+
+	popl 	%ebx
+	ret
+
+draw_apples:
+	pushl	%ebx
+	movl 	max_apples, %ebx
+	#decl 	%ebx
+draw_apples_loop:
+	leal 	apple, %edx
+
 	pushl 	$APPLE_CHAR
-	pushl 	(%edx)
-	pushl 	4(%edx)
+	pushl 	(%edx, %ebx, 8)
+	pushl 	4(%edx, %ebx, 8)
 	call 	nib_put_scr
 	addl 	$12, %esp
 
+	decl	%ebx
+	jge 	draw_apples_loop
+
+	popl 	%ebx
 	ret
 
 draw_map:
@@ -136,7 +180,8 @@ draw_map:
 	call	sleep
 	addl	$4, %esp
 	call 	draw_roof
-ret
+	
+	ret
 
 draw_walls:
 	xorl	%edx, %edx	
@@ -217,21 +262,46 @@ end_move:
 check_apple_coll:
 	#IF APPLE EATEN -> DON'T REMOVE TAIL
 	#Check collision with apple
-	movl	head, %eax
-	leal	snake, %edx
+	movl 	max_apples, %edx
+apple_coll_loop:
 	leal	apple, %eax
-	cmpl 	%ecx, (%eax)
-	jnz 	remove_tail
-	cmpl 	%ebx, 4(%eax)
-	jnz 	remove_tail
-	call 	spawn_apple
-	movl 	snake_size, %ebx
-	cmpl	$MAX_ARR, %ebx
-	je		remove_tail 	#don't grow if max size is reached
-	movl 	snake_size, %ebx
-	incl	%ebx
-	movl 	%ebx, snake_size
+	cmpl 	%ecx, (%eax, %edx, 8)
+	jnz 	apple_coll_loop_f
+	cmpl 	%ebx, 4(%eax, %edx, 8)
+	jnz 	apple_coll_loop_f
+
+apple_coll:
+	pushl 	%edx #save index of the apple
+remove_apple:
+	pushl 	$EMPTY_CHAR
+	pushl 	4(%eax, %edx, 8)
+	pushl 	(%eax, %edx, 8)
+	call 	nib_put_scr
+	addl 	$12, %esp
+
+	call 	spawn_apple #spawn a new apple (index of apple was pushed earlier)
+	addl 	$4, %esp
+
+	movl 	snake_size, %ecx
+	movl 	$MAX_ARR, %eax
+	decl	%eax
+
+	cmpl	%eax, %ecx
+	je 		remove_tail 	#don't grow if max size is reached
+
+	#Avoid removing the tail to simulate growth
+	#increase size
+	movl 	snake_size, %ecx
+	incl	%ecx
+	movl 	%ecx, snake_size
 	jmp 	set_new_head
+
+apple_coll_loop_f:
+	decl 	%edx
+	jge	 	apple_coll_loop	
+
+no_apple_coll:
+	#Remove tail to simulate movement
 remove_tail:
 	########REMOVE TAIL############
 	movl	tail, %eax
@@ -282,26 +352,31 @@ check_wall_coll:
 	je 		losers_lounge
 	cmpl	$MAX_Y, %ebx
 	je 		losers_lounge
+
 check_worm_coll:
 	movl 	tail, %eax
-	pushl 	%ebx
-	movl 	head, %ebx
-	cmpl 	%ebx, %eax
-	popl	%ebx
-	je 		draw_head
+	movl 	snake_size, %ebx
 worm_coll_loop:
+	decl 	%ebx
+	jz 		draw_head
 	#edx = snake
+	pushl 	%eax				#THIS IS BULLSHIT BUT I RAN OUT OF REGISTERS AND I*M TOO TIRED TO THINK
+	movl 	head, %eax
+	movl 	(%edx, %eax, 8), %ecx
+	popl 	%eax
 	cmpl 	(%edx, %eax, 8), %ecx
-	jne 	no_coll_worm
-	cmpl 	4(%edx, %eax, 8), %ebx
+	jne 	worm_coll_loop_f
+
+	pushl 	%eax				#THIS IS BULLSHIT BUT I RAN OUT OF REGISTERS AND I*M TOO TIRED TO THINK
+	movl 	head, %eax
+	movl 	4(%edx, %eax, 8), %ecx
+	popl 	%eax
+	cmpl 	4(%edx, %eax, 8), %ecx
 	je 		losers_lounge
-no_coll_worm:
-	incl 	%eax 
-	pushl 	%ebx
-	movl 	head, %ebx
-	cmpl 	%ebx, %eax
-	popl 	%ebx
-	jne 	worm_coll_loop
+worm_coll_loop_f:
+	incl 	%eax
+	jmp 	worm_coll_loop
+
 draw_head:
 	#Draw head
 	movl 	head, %eax
@@ -311,6 +386,7 @@ draw_head:
 	pushl 	4(%edx, %eax, 8)
 	call	nib_put_scr
 	addl	$12, %esp
+
 	ret
 #int mod(int i, int mod_val) params stored int %eax and %ecx
 # returns i mod mod_val
