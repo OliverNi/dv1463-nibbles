@@ -324,19 +324,22 @@ remove_tail:
 
 	#Calculate new tail (offset in array)
 	incl	%eax
-	movl	$MAX_ARR, %ecx
-	call	mod
-	movl	%eax, tail
+	cmpl 	$MAX_ARR, %eax
+	jne 	set_tail
+	xorl 	%eax, %eax 		#if the end of the array is reached it should start from the beggining i.e offset 0
+set_tail:
+	movl 	%eax, tail
 
 set_new_head:
-	
 	#Calculate index of the new head
 	movl 	head, %eax
 	incl	%eax
+	cmpl 	$MAX_ARR, %eax
+	jne 	set_head
+	xorl 	%eax, %eax 		#if the end of the array is reached it should start from the beggining i.e offset 0
+set_head:
+	movl 	%eax, head
 
-	movl	$MAX_ARR, %ecx
-	call	mod
-	movl	%eax, head
 	leal	(snake), %edx
 	#pop coords
 	popl 	%ecx
@@ -387,16 +390,6 @@ draw_head:
 	call	nib_put_scr
 	addl	$12, %esp
 
-	ret
-#int mod(int i, int mod_val) params stored int %eax and %ecx
-# returns i mod mod_val
-# result is returned in %eax
-mod:
-	xorl	%edx, %edx # edx = 0 (reserve 32 bit for rest)
-	divl	%ecx	# random/(max-1) (%eax/%ecx)
-	# %eax = kvot
-	# %edx = rest
-	movl	%edx, %eax	# return val
 	ret
 
 # int rpoint(int max) { return rand() % (max - 1) + 1; }
