@@ -273,18 +273,12 @@ apple_coll_loop:
 apple_coll:
 	pushl 	%edx #save index of the apple
 remove_apple:
-	pushl 	$EMPTY_CHAR
-	pushl 	4(%eax, %edx, 8)
-	pushl 	(%eax, %edx, 8)
-	call 	nib_put_scr
-	addl 	$12, %esp
-
 	call 	spawn_apple #spawn a new apple (index of apple was pushed earlier)
 	addl 	$4, %esp
 
 	movl 	snake_size, %ecx
 	movl 	$MAX_ARR, %eax
-	decl	%eax
+	decl	%eax			#IS THIS REALLY NECESSARY 
 
 	cmpl	%eax, %ecx
 	je 		remove_tail 	#don't grow if max size is reached
