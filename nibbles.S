@@ -304,31 +304,23 @@ no_apple_coll:
 	#Remove tail to simulate movement
 remove_tail:
 	########REMOVE TAIL############
-	movl	tail, %eax
+	movl	tail, %ebx
 	leal	(snake), %edx
 
 	#Remove graphic
 	pushl 	$EMPTY_CHAR
-	pushl 	(%edx, %eax, 8)
-	pushl 	4(%edx, %eax, 8)
+	pushl 	(%edx, %ebx, 8)
+	pushl 	4(%edx, %ebx, 8)
 	call	nib_put_scr
 	addl	$12, %esp
 
-	#Would be better if we could grab this from the stack but nothing's working.
-	movl	tail, %eax	
-	leal	(snake), %edx
-
-	#Reset values in array
-	movl	$0, (%edx, %eax, 8)
-	movl	$0, 4(%edx, %eax, 8)
-
 	#Calculate new tail (offset in array)
-	incl	%eax
-	cmpl 	$MAX_ARR, %eax
+	incl	%ebx
+	cmpl 	$MAX_ARR, %ebx
 	jne 	set_tail
-	xorl 	%eax, %eax 		#if the end of the array is reached it should start from the beggining i.e offset 0
+	xorl 	%ebx, %ebx 		#if the end of the array is reached it should start from the beggining i.e offset 0
 set_tail:
-	movl 	%eax, tail
+	movl 	%ebx, tail
 
 set_new_head:
 	#Calculate index of the new head
