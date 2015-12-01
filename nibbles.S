@@ -235,6 +235,7 @@ move_snake:
 	movl	4(%edx, %eax, 8), %ecx #store y-value of current head 
 	pushl	%ecx
 	
+	###Calculate values for the new head###
 	popl	%ebx	#pop y-coord of the old head
 	popl 	%ecx	#x-coord
 	cmpl	$KU, direction	#if keyboard input was UP
@@ -342,27 +343,27 @@ check_wall_coll:
 	je 		losers_lounge
 
 check_worm_coll:
-	movl 	tail, %eax
-	movl 	snake_size, %ebx
+	movl 	head, %ebx
+	movl 	%ebx, %eax
 worm_coll_loop:
 	decl 	%ebx
+	cmpl 	$-1, %ebx
+	jne 	worm_coll_cmpcoords
+	movl 	$MAX_ARR-1, %ebx
+worm_coll_cmpcoords:
+	cmpl 	tail, %ebx
 	jz 		draw_head
-	#edx = snake
-	pushl 	%eax				#THIS IS BULLSHIT BUT I RAN OUT OF REGISTERS AND I*M TOO TIRED TO THINK
-	movl 	head, %eax
+
+	#Check if x-coord of head is the same as index ebx node
 	movl 	(%edx, %eax, 8), %ecx
-	popl 	%eax
-	cmpl 	(%edx, %eax, 8), %ecx
+	cmpl 	(%edx, %ebx, 8), %ecx
 	jne 	worm_coll_loop_f
 
-	pushl 	%eax				#THIS IS BULLSHIT BUT I RAN OUT OF REGISTERS AND I*M TOO TIRED TO THINK
-	movl 	head, %eax
+	#Check if y-coord of head is the same as index ebx node
 	movl 	4(%edx, %eax, 8), %ecx
-	popl 	%eax
-	cmpl 	4(%edx, %eax, 8), %ecx
+	cmpl 	4(%edx, %ebx, 8), %ecx
 	je 		losers_lounge
 worm_coll_loop_f:
-	incl 	%eax
 	jmp 	worm_coll_loop
 
 draw_head:
