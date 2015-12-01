@@ -1,10 +1,10 @@
 ### Constants
 ###
-.set	MAX_Y,	14
-.set	MAX_X, 14
+.set	MAX_Y,	32
+.set	MAX_X, 32
 .set	BORDER_CHAR, 43
-.set	MID_X, 7
-.set	MID_Y, 7
+.set	MID_X, 16
+.set	MID_Y, 16
 .set	SNAKE_CHAR, 111
 .set	APPLE_CHAR, 64
 .set	KD, 258
@@ -12,7 +12,7 @@
 .set	KL, 260
 .set	KR, 261
 .set 	EMPTY_CHAR, 32
-.set 	MAX_ARR,	50
+.set 	MAX_ARR,	10
 
 .section .data
 apple: 			.space 	200
@@ -93,7 +93,7 @@ game_loop:
 	call 	check_input
 	call	move_snake
 	call 	draw_apples
-	pushl	$500000
+	pushl	$200000
 	call	usleep
 	addl	$4, %esp
 	jmp 	game_loop
@@ -278,7 +278,6 @@ remove_apple:
 
 	movl 	snake_size, %ecx
 	movl 	$MAX_ARR, %eax
-	decl	%eax			#IS THIS REALLY NECESSARY 
 
 	cmpl	%eax, %ecx
 	je 		remove_tail 	#don't grow if max size is reached
