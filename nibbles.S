@@ -345,26 +345,30 @@ check_wall_coll:
 check_worm_coll:
 	movl 	head, %ebx
 	movl 	%ebx, %eax
+
+	#If tail and head are the same we should skip this collision check.
+	cmpl 	tail, %ebx
+	je 		draw_head
 worm_coll_loop:
 	decl 	%ebx
+	#Check if ebx goes out of bound - if so start from the last slot in the array
 	cmpl 	$-1, %ebx
 	jne 	worm_coll_cmpcoords
 	movl 	$MAX_ARR-1, %ebx
 worm_coll_cmpcoords:
-	cmpl 	tail, %ebx
-	jz 		draw_head
-
 	#Check if x-coord of head is the same as index ebx node
 	movl 	(%edx, %eax, 8), %ecx
 	cmpl 	(%edx, %ebx, 8), %ecx
-	jne 	worm_coll_loop_f
+	jne 	worm_coll_loop_f 
 
 	#Check if y-coord of head is the same as index ebx node
 	movl 	4(%edx, %eax, 8), %ecx
 	cmpl 	4(%edx, %ebx, 8), %ecx
 	je 		losers_lounge
 worm_coll_loop_f:
-	jmp 	worm_coll_loop
+	cmpl 	tail, %ebx
+	jne 	worm_coll_loop
+
 
 draw_head:
 	#Draw head
