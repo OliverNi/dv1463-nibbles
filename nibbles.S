@@ -175,12 +175,6 @@ draw_apples_loop:					#Loop through all indices of the apple-array and draw them
 	ret
 
 draw_map:
-	call 	draw_walls 				#Draw the outer walls (y-axis borders)
-	call 	draw_roof				#Draw roof and floor (x-axis borders)
-	ret
-
-draw_walls:
-	xorl	%edx, %edx	
 	xorl	%ebx, %ebx #counter
 
 	l1: 
@@ -190,22 +184,13 @@ draw_walls:
 	call	nib_put_scr
 	addl	$12, %esp
 	pushl	$BORDER_CHAR # Push character
-	pushl	%ebx		 # Push y
-	pushl	$MAX_X		 # Push x
-	call	nib_put_scr
-	addl	$12, %esp
-	incl	%ebx
-	cmpl	$MAX_Y, %ebx
-	jle		l1
-	ret
-
-draw_roof:
-	xorl	%ebx, %ebx #counter
-
-	l2: 
-	pushl	$BORDER_CHAR # Push character
 	pushl	$0		 # Push y
 	pushl	%ebx		 # Push x
+	call	nib_put_scr
+	addl	$12, %esp
+	pushl	$BORDER_CHAR # Push character
+	pushl	%ebx		 # Push y
+	pushl	$MAX_X		 # Push x
 	call	nib_put_scr
 	addl	$12, %esp
 	pushl	$BORDER_CHAR # Push character
@@ -214,8 +199,8 @@ draw_roof:
 	call	nib_put_scr
 	addl	$12, %esp
 	incl	%ebx
-	cmpl	$MAX_X, %ebx
-	jle		l2
+	cmpl	$MAX_Y, %ebx
+	jle		l1
 	ret
 
 move_snake:
