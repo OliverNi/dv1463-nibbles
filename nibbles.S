@@ -12,7 +12,7 @@
 .set	KL, 260
 .set	KR, 261
 .set 	EMPTY_CHAR, 32
-.set 	MAX_ARR,	10
+.set 	MAX_ARR,	50
 
 .section .data
 apple: 			.space 	200
@@ -32,131 +32,132 @@ start_len: 		.long 	1
 .globl	start_game
 .type start_game,@function
 start_game:
-	movl 	4(%esp), %eax
+	movl 	4(%esp), %eax	#Get the len parameter
 	movl 	%eax, start_len
-	movl 	8(%esp), %ecx
-	decl	%ecx		#-1 so it works better in loops (offset starts at 0)
+	movl 	8(%esp), %ecx	#Get the apples parameter
+	decl	%ecx		#-1 so it works better in loops (offset starts at 0)			####THIS IS DUMB#####
 	movl 	%ecx, max_apples
-	pushl	%ebp
+	pushl	%ebp			#Prologue
 	movl	%esp, %ebp
-	subl	$1024, %esp
+	subl	$1024, %esp		#Allocate memory
 	call	nib_init
-	call	draw_map
+	call	draw_map		#Draw borders for the game-board.
 	
 #Spawn worm in the middle (one head at a time)
 init_worm:
 	#Calculate position for first head
-	xorl 	%edx, %edx
-	movl 	$2, %ebx
-	movl  	start_len, %eax
-	divl 	%ebx
-	movl 	$MID_X, %ecx	
-	subl 	%eax, %ecx
-	xorl 	%ebx, %ebx
-	pushl 	%ecx
+	xorl 	%edx, %edx			#%edx = 0 (preparation for div)
+	movl 	$2, %ebx			
+	movl  	start_len, %eax		#Divide len
+	divl 	%ebx				#Divide len with two to make sure that the middle-part of the worm starts in the middle.
+	movl 	$MID_Y, %ecx		#Get the middle-position
+	subl 	%eax, %ecx			#Get the startposition for the tail
+	xorl 	%ebx, %ebx			#ebx = 0
+	pushl 	%ecx				#Push middle-position
 #add the next head
 worm_loop:
-	movl 	head, %ecx
-	incl	%ecx	#let head point to the next offset in the array
-	movl 	%ecx, head
-	leal 	snake, %edx
-	movl 	$MID_X, %eax
-	movl	%eax, 4(%edx, %ebx, 8)
+	movl 	head, %ecx			#ecx = offset for head
+	incl	%ecx				#let head point to the next offset in the array
+	movl 	%ecx, head 			#
+	leal 	snake, %edx 		#Get the address for snake
+	movl 	$MID_X, %eax 		
+	movl	%eax, 4(%edx, %ebx, 8)	#Put node in the middle (x-axis)
 	popl 	%ecx
-	movl	%ecx, (%edx, %ebx, 8)
-	incl	%ecx	#increase position coord
-	pushl 	%ecx
-	call 	draw_head
-	incl 	%ebx
+	movl	%ecx, (%edx, %ebx, 8) 	#Set y-coordinate
+	incl	%ecx					#increase y-position coord
+	pushl 	%ecx					#Push y-coord for the next node	
+	call 	draw_head				#Draw the node
+	incl 	%ebx					#Increment loop counter (and index-position)
 
-	#increase size
-	movl 	snake_size, %ecx
+	#increase snake_size
+	movl 	snake_size, %ecx		
 	incl	%ecx
 	movl 	%ecx, snake_size
 
-	cmpl 	start_len, %ebx 	#start_len, loop counter
-	jne 	worm_loop
+	cmpl 	start_len, %ebx 	#if (index != start_len)
+	jne 	worm_loop 			#next iteration (Put next node of snake)
 
 init_apples:
-	movl 	max_apples, %ebx
-	#decl	%ebx
-init_apples_loop:
-	pushl 	%ebx
-	call 	spawn_apple
-	addl	$4, %esp
+	movl 	max_apples, %ebx 	#ebx = amount of apples on the screen at the same time.
+init_apples_loop:				
+	pushl 	%ebx 				#Push index in apple-array as parameter
+	call 	spawn_apple 		#Put a new apple on the screen
+	addl	$4, %esp			#Clean the stack
 
-	decl	%ebx
-	jge		init_apples_loop	
+	decl	%ebx				#Decrement loop counter (index in apple-array)
+	jge		init_apples_loop	#Next iteration if ebx > 0
 
 	
 game_loop:
-	call 	check_input
-	call	move_snake
-	call 	draw_apples
-	pushl	$200000
-	call	usleep
+	call 	check_input			#Get the direction of the snake
+	call	move_snake			#Move the snake and check collisions
+	call 	draw_apples 		#Draw the apples (This is polled because there is a problem when an apple is spawned on the snake)
+	pushl	$200000				
+	call	usleep				#Add some delay to the game loop to prevent the snake from moving to fast.
 	addl	$4, %esp
 	jmp 	game_loop
-losers_lounge:
-winners_lounge:
-	pushl	$2
-	call	sleep
+losers_lounge:					#If this is reached the player has lost the player has lost the game
+	pushl	$2 		
+	call	sleep 				#Sleep for two seconds then end the game
 	addl	$4, %esp
 	call	nib_end
 	leave
 	ret
-check_input:
+check_input: 					#Check for player's keyboard input
 	call 	nib_poll_kbd
-	cmpl	$-1, %eax
+	cmpl	$-1, %eax			#If nib_poll_kbd returned -1 there was no input, don't change the direction.
 	je 		do_nothing
-	movl 	direction, %ecx
-x_axis_l:
-	cmpl 	$KL, %ecx
+	movl 	direction, %ecx 	#ecx = direction
+	#Check legality of moves 
+x_axis_l:		
+	cmpl 	$KL, %ecx 			#if current direction is LEFT and the new direction is RIGHT, don't change the direction
 	jne 	x_axis_r
 	cmpl 	$KR, %eax
 	je 		do_nothing
 x_axis_r:
-	cmpl	$KR, %ecx
+	cmpl	$KR, %ecx			#if current direction is RIGHT and the new direction is LEFT, don't change the direction
 	jne 	y_axis_u
 	cmpl	$KL, %eax
 	je 		do_nothing
 y_axis_u:
-	cmpl 	$KU, %ecx
+	cmpl 	$KU, %ecx 			#if current direction is UP and the new direction is DOWN, don't change the direction
 	jne 	y_axis_d
 	cmpl	$KD, %eax
 	je 		do_nothing
 y_axis_d:
-	cmpl 	$KD, %ecx
+	cmpl 	$KD, %ecx   		#if current direction is DOWN and the new direction is UP, don't change the direction
 	jne 	change_direction
 	cmpl	$KU, %eax
 	je 		do_nothing
 change_direction:
-	movl 	%eax, direction
+	movl 	%eax, direction 	#Put the new direction in the direction-variable
 do_nothing:
 ret
 # void spawn_apple(int offset)
 # offset: The offset in the array where the appleshould be stored
 spawn_apple:
-	pushl 	%ebx
-	movl 	8(%esp), %ebx
+	pushl 	%ebx					#Save ebx so we can reset it later (calling convention)
+	movl 	8(%esp), %ebx			#Get the parameter (index where the spawned apple should be stored)
 	
-	pushl	$MAX_Y
+	#Get a random y-coord for the new apple
+	pushl	$MAX_Y					#Push parameter (mod-value)
 	call 	rpoint
-	addl	$4, %esp
-	leal 	apple, %edx
-	movl 	%eax, (%edx, %ebx, 8) #set x-coord
+	addl	$4, %esp				#Clean the stack
+	leal 	apple, %edx				#edx = address of apple-array
+	movl 	%eax, (%edx, %ebx, 8) 	#set y-coord
 
+	#Get a random x-coord for the new apple
 	pushl 	$MAX_X
 	call 	rpoint
 	addl	$4, %esp
 	leal 	apple, %edx
-	movl 	%eax, 4(%edx, %ebx, 8) #set y-coord
+	movl 	%eax, 4(%edx, %ebx, 8) #set x-coord
 
-	popl 	%ebx
+	popl 	%ebx					#Restore ebx (calling convention)
 	ret
 
 draw_apples:
-	pushl	%ebx
+	pushl	%ebx					#
 	movl 	max_apples, %ebx
 	#decl 	%ebx
 draw_apples_loop:
@@ -225,7 +226,6 @@ draw_roof:
 
 move_snake:
 	leal	snake, %edx
-	
 
 	#######Move forward - add head#########
 	#Get values from current head
