@@ -107,7 +107,7 @@ check_input: 					#Check for player's keyboard input
 	call 	nib_poll_kbd
 	cmpl	$-1, %eax			#If nib_poll_kbd returned -1 there was no input, don't change the direction.
 	je 		do_nothing
-	movl 	direction, %ecx 	#ecx = direction
+	movl 	direction, %ecx 	#ecx = old direction
 	#Check legality of moves 
 x_axis_l:		
 	cmpl 	$KL, %ecx 			#if current direction is LEFT and the new direction is RIGHT, don't change the direction
@@ -214,71 +214,71 @@ move_snake:
 	movl	4(%edx, %eax, 8), %ebx 			#store x-value of current head 
 	
 	###Calculate values for the new head###
-	cmpl	$KU, direction	#if keyboard input was UP
+	cmpl	$KU, direction					#if keyboard input was UP -> move_up
 	jnz		move_down
 move_up:
-	decl	%ecx
-	jmp		end_move
+	decl	%ecx							#decrement y-coordinate
+	jmp		end_move						#The x-coordinate remain the same so we can end move.
 move_down:
-	cmpl	$KD, direction	#if keyboard input was DOWN
+	cmpl	$KD, direction					#if keyboard input was DOWN
 	jnz		xcoord
-	incl	%ecx
-	jmp		end_move
+	incl	%ecx							#increment y-coordinate
+	jmp		end_move						#The x-coordinate remain the same so we can end move.
 xcoord:
-	cmpl	$KR, direction	#if keyboard input was RIGHT
+	cmpl	$KR, direction					#if keyboard input was RIGHT -> move_right
 	jnz		move_left
 move_right:
-	incl	%ebx
+	incl	%ebx							#increment x-coordinate
 	jmp		end_move
 move_left:
-	decl	%ebx
+	decl	%ebx							#decrement x-coordinate
 end_move:
-	pushl 	%ebx
-	pushl 	%ecx
+	pushl 	%ebx							#Push x-coordinate
+	pushl 	%ecx							#Push y-coordinate
 
 check_apple_coll:
 	#IF APPLE EATEN -> DON'T REMOVE TAIL
 	#Check collision with apple
-	movl 	max_apples, %edx
+	movl 	max_apples, %edx				#Use edx as counter, start at the last index in apple-array
 apple_coll_loop:
-	leal	apple, %eax
-	cmpl 	%ecx, (%eax, %edx, 8)
+	leal	apple, %eax						#eax = addr of apple-array
+	cmpl 	%ecx, (%eax, %edx, 8)			#if y-coordinate of snake-head == y-coordinate of apple att index edx &&
 	jnz 	apple_coll_loop_f
-	cmpl 	%ebx, 4(%eax, %edx, 8)
+	cmpl 	%ebx, 4(%eax, %edx, 8) 			#x-coordinate of snake-head == x-coordinate of apple at index edx -> There was a collition
 	jnz 	apple_coll_loop_f
 
 apple_coll:
-	pushl 	%edx #save index of the apple
+	pushl 	%edx 							#Push parameter (index in apple-array)
 remove_apple:
-	call 	spawn_apple #spawn a new apple (index of apple was pushed earlier)
-	addl 	$4, %esp
+	call 	spawn_apple 					#spawn a new apple (index of apple was pushed earlier)
+	addl 	$4, %esp						#Clean stack
 
-	movl 	snake_size, %ecx
-	movl 	$MAX_ARR, %eax
+	movl 	snake_size, %ecx 				#ecx = snake_size
+	movl 	$MAX_ARR, %eax 					#eax = MAX_ARR
 
 	cmpl	%eax, %ecx
-	je 		remove_tail 	#don't grow if max size is reached
+	je 		remove_tail 					#don't grow if max size is reached
 
 	#Avoid removing the tail to simulate growth
 	#increase size
 	movl 	snake_size, %ecx
 	incl	%ecx
 	movl 	%ecx, snake_size
-	jmp 	set_new_head
+	jmp 	set_new_head					#Skip remove_tail and move directly to set_new_head
 
 apple_coll_loop_f:
-	decl 	%edx
+	decl 	%edx							#decrement counter and check the next index in the array if counter >= 0
 	jge	 	apple_coll_loop	
 
 no_apple_coll:
 	#Remove tail to simulate movement
 remove_tail:
 	########REMOVE TAIL############
-	movl	tail, %ebx
-	leal	(snake), %edx
+	movl	tail, %ebx						#ebx = tail
+	leal	(snake), %edx					#edx = snake
 
-	#Remove graphic
-	pushl 	$EMPTY_CHAR
+	#Remove graphic from screen
+	pushl 	$EMPTY_CHAR						
 	pushl 	(%edx, %ebx, 8)
 	pushl 	4(%edx, %ebx, 8)
 	call	nib_put_scr
@@ -286,68 +286,68 @@ remove_tail:
 
 	#Calculate new tail (offset in array)
 	incl	%ebx
-	cmpl 	$MAX_ARR, %ebx
+	cmpl 	$MAX_ARR, %ebx		#if the end of the array is reached
 	jne 	set_tail
-	xorl 	%ebx, %ebx 		#if the end of the array is reached it should start from the beggining i.e offset 0
+	xorl 	%ebx, %ebx 		 	#it should start from the beggining i.e offset 0
 set_tail:
-	movl 	%ebx, tail
+	movl 	%ebx, tail 			#tail = the new index
 
 set_new_head:
 	#Calculate index of the new head
-	movl 	head, %eax
-	incl	%eax
-	cmpl 	$MAX_ARR, %eax
+	movl 	head, %eax 			#eax = head
+	incl	%eax				#increment head to get the index for the new head
+	cmpl 	$MAX_ARR, %eax		#if the end of the array is reached
 	jne 	set_head
-	xorl 	%eax, %eax 		#if the end of the array is reached it should start from the beggining i.e offset 0
+	xorl 	%eax, %eax 		 	#it should start from the beggining i.e offset 0
 set_head:
-	movl 	%eax, head
+	movl 	%eax, head 			#head = the new index
 
-	leal	(snake), %edx
+	leal	(snake), %edx		#edx = snake
 	#pop coords
-	popl 	%ecx
-	popl 	%ebx
-	movl	%ecx, (%edx, %eax, 8)
-	movl	%ebx, 4(%edx, %eax, 8)
-check_wall_coll:
-	cmpl 	$0, %ecx
-	je 		losers_lounge
-	cmpl	$MAX_X, %ecx
-	je 		losers_lounge
-	cmpl	$0, %ebx
-	je 		losers_lounge
-	cmpl	$MAX_Y, %ebx
-	je 		losers_lounge
+	popl 	%ecx					#pop y-coord of the new head
+	popl 	%ebx					#pop x-coord of the new head
+	movl	%ecx, (%edx, %eax, 8)	#Set the y-coord for the new head
+	movl	%ebx, 4(%edx, %eax, 8)	#Set the x-coord for the new head
+
+check_wall_coll:					#Check for collisions with the walls
+	cmpl 	$0, %ecx				#if y-coord ==  0
+	je 		losers_lounge			#it has hit the roof
+	cmpl	$MAX_Y, %ecx			#if y-coord == MAX_Y
+	je 		losers_lounge			#it has hit the floor
+	cmpl	$0, %ebx				#if x-coord == 0
+	je 		losers_lounge			#It has hit the left wall
+	cmpl	$MAX_X, %ebx			#if x-coord == MAX_X
+	je 		losers_lounge			#it has hit the right wall
 
 check_worm_coll:
-	movl 	head, %ebx
-	movl 	%ebx, %eax
+	movl 	head, %ebx				#ebx = head
+	movl 	%ebx, %eax				
 
 	#If tail and head are the same we should skip this collision check.
 	cmpl 	tail, %ebx
 	je 		draw_head
 worm_coll_loop:
-	decl 	%ebx
+	decl 	%ebx			#Decrease counter (index)
 	#Check if ebx goes out of bound - if so start from the last slot in the array
-	cmpl 	$-1, %ebx
+	cmpl 	$-1, %ebx		#If counter == -1, 
 	jne 	worm_coll_cmpcoords
-	movl 	$MAX_ARR-1, %ebx
+	movl 	$MAX_ARR-1, %ebx #set it to the last index in the array
 worm_coll_cmpcoords:
 	#Check if x-coord of head is the same as index ebx node
 	movl 	(%edx, %eax, 8), %ecx
-	cmpl 	(%edx, %ebx, 8), %ecx
+	cmpl 	(%edx, %ebx, 8), %ecx	#Compare head's y-coord with the current node at this index
 	jne 	worm_coll_loop_f 
 
 	#Check if y-coord of head is the same as index ebx node
 	movl 	4(%edx, %eax, 8), %ecx
-	cmpl 	4(%edx, %ebx, 8), %ecx
-	je 		losers_lounge
+	cmpl 	4(%edx, %ebx, 8), %ecx 	#Compare head's x-coord with the current node at this index
+	je 		losers_lounge			#collision detected - the player should lose the game.
 worm_coll_loop_f:
-	cmpl 	tail, %ebx
+	cmpl 	tail, %ebx				#if counter == tail, the loop is done (the last index has been checked)
 	jne 	worm_coll_loop
 
-
 draw_head:
-	#Draw head
+	#Draw the head on the screen.
 	movl 	head, %eax
 	leal	snake, %edx
 	pushl 	$SNAKE_CHAR
@@ -357,7 +357,6 @@ draw_head:
 	addl	$12, %esp
 
 	ret
-
 # int rpoint(int max) { return rand() % (max - 1) + 1; }
 # returns random value between 1 and max - 1
 # result is returned in %eax
