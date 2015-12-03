@@ -175,32 +175,33 @@ draw_apples_loop:					#Loop through all indices of the apple-array and draw them
 	ret
 
 draw_map:
-	xorl	%ebx, %ebx #counter
-
+	xorl	%ebx, %ebx 		#counter
+	pushl	$BORDER_CHAR 	# Push character	#Push the BORDER_CHAR since it will be used in all nib_put_scr calls.
 	l1: 
-	pushl	$BORDER_CHAR # Push character
-	pushl	%ebx		 # Push y
-	pushl	$0		 # Push x
+	#draw first wall
+	pushl	%ebx		 	# Push y
+	pushl	$0				# Push x
 	call	nib_put_scr
-	addl	$12, %esp
-	pushl	$BORDER_CHAR # Push character
-	pushl	$0		 # Push y
-	pushl	%ebx		 # Push x
+	addl	$8, %esp		#Clean stack
+	#Draw roof
+	pushl	$0		 		# Push y
+	pushl	%ebx		 	# Push x
+	call	nib_put_scr	
+	addl	$8, %esp		#Clean stack
+	#Draw second wall
+	pushl	%ebx		 	# Push y
+	pushl	$MAX_X		 	# Push x
 	call	nib_put_scr
-	addl	$12, %esp
-	pushl	$BORDER_CHAR # Push character
-	pushl	%ebx		 # Push y
-	pushl	$MAX_X		 # Push x
+	addl	$8, %esp		#Clean stack
+	#Draw floor
+	pushl	$MAX_Y		 	# Push y
+	pushl	%ebx	 		# Push x
 	call	nib_put_scr
-	addl	$12, %esp
-	pushl	$BORDER_CHAR # Push character
-	pushl	$MAX_Y		 # Push y
-	pushl	%ebx	 # Push x
-	call	nib_put_scr
-	addl	$12, %esp
-	incl	%ebx
-	cmpl	$MAX_Y, %ebx
+	addl	$8, %esp		#Clean stack
+	incl	%ebx			#Increment counter
+	cmpl	$MAX_Y, %ebx	#Next iteration if counter <= MAX_Y
 	jle		l1
+	addl 	$4, %esp						#Remove BORDER_CHAR from the stack
 	ret
 
 move_snake:
