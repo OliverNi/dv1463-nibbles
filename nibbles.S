@@ -13,6 +13,8 @@
 .set	KR, 261
 .set 	EMPTY_CHAR, 32
 .set 	MAX_ARR,	50
+.set 	MAX_START_LEN, 25
+.set 	MAX_START_APL, 25
 
 .section .data
 apple: 			.space 	200
@@ -33,9 +35,17 @@ start_len: 		.long 	1
 .type start_game,@function
 start_game:
 	movl 	4(%esp), %eax	#Get the len parameter
+	cmpl 	$MAX_START_LEN, %eax
+	jle 	set_startlen				#if len parameter > MAX_START_LEN
+	movl 	$MAX_START_LEN, %eax		#set startlen to MAX_START_LEN	
+set_startlen:
 	movl 	%eax, start_len
 	movl 	8(%esp), %ecx	#Get the apples parameter
-	decl	%ecx		#-1 so it works better in loops (offset starts at 0)			####THIS IS DUMB#####
+	cmpl 	$MAX_START_APL, %ecx
+	jle 	set_startapl				#if apple paramater > MAX_START_APL
+	movl 	$MAX_START_APL, %ecx		#set max_apples to MAX_START_APL
+set_startapl:
+	decl	%ecx		#-1 so it works better in loops (offset starts at 0)
 	movl 	%ecx, max_apples
 	pushl	%ebp			#Prologue
 	movl	%esp, %ebp
