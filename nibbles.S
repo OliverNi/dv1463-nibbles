@@ -201,23 +201,19 @@ draw_map:
 	incl	%ebx			#Increment counter
 	cmpl	$MAX_Y, %ebx	#Next iteration if counter <= MAX_Y
 	jle		l1
-	addl 	$4, %esp						#Remove BORDER_CHAR from the stack
+	addl 	$4, %esp		#Remove BORDER_CHAR from the stack
 	ret
 
 move_snake:
-	leal	snake, %edx
+	leal	snake, %edx						#edx = addr of snake
 
 	#######Move forward - add head#########
 	#Get values from current head
-	movl	head, %eax
-	movl	(%edx, %eax, 8), %ecx #store x-value of current head
-	pushl	%ecx
-	movl	4(%edx, %eax, 8), %ecx #store y-value of current head 
-	pushl	%ecx
+	movl	head, %eax						#eax = head
+	movl	(%edx, %eax, 8), %ecx 			#store y-value of current head
+	movl	4(%edx, %eax, 8), %ebx 			#store x-value of current head 
 	
 	###Calculate values for the new head###
-	popl	%ebx	#pop y-coord of the old head
-	popl 	%ecx	#x-coord
 	cmpl	$KU, direction	#if keyboard input was UP
 	jnz		move_down
 move_up:
