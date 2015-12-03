@@ -157,31 +157,26 @@ spawn_apple:
 	ret
 
 draw_apples:
-	pushl	%ebx					#
-	movl 	max_apples, %ebx
-	#decl 	%ebx
-draw_apples_loop:
-	leal 	apple, %edx
+	pushl	%ebx					#Save ebx (calling convention)
+	movl 	max_apples, %ebx		#Initiate loop counter with max-index of apple-array
+draw_apples_loop:					#Loop through all indices of the apple-array and draw them on the screen
+	leal 	apple, %edx				#edx = addr of apple-array
 
-	pushl 	$APPLE_CHAR
+	pushl 	$APPLE_CHAR				#Push parameters
 	pushl 	(%edx, %ebx, 8)
 	pushl 	4(%edx, %ebx, 8)
-	call 	nib_put_scr
-	addl 	$12, %esp
+	call 	nib_put_scr 			#Draw an apple at its correct coordinates 
+	addl 	$12, %esp				#Clean the stack
 
-	decl	%ebx
-	jge 	draw_apples_loop
+	decl	%ebx					#Decrement counter (index)
+	jge 	draw_apples_loop		#if ebx > 0 continue to next iteration
 
-	popl 	%ebx
+	popl 	%ebx					#Restore ebx (calling convention)
 	ret
 
 draw_map:
-	call 	draw_walls
-	pushl	$1
-	call	sleep
-	addl	$4, %esp
-	call 	draw_roof
-	
+	call 	draw_walls 				#Draw the outer walls (y-axis borders)
+	call 	draw_roof				#Draw roof and floor (x-axis borders)
 	ret
 
 draw_walls:
@@ -205,7 +200,6 @@ draw_walls:
 	ret
 
 draw_roof:
-	xorl	%edx, %edx	
 	xorl	%ebx, %ebx #counter
 
 	l2: 
